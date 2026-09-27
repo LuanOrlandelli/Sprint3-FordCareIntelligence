@@ -19,7 +19,12 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = LeadController.class)
+@WebMvcTest(
+        controllers = LeadController.class,
+        properties = {
+                "jwt.secret=fordcare-security-integration-test-secret-key-2026-123456789"
+        }
+)
 @Import({
         SecurityConfig.class,
         JwtService.class,
@@ -46,8 +51,7 @@ class SecurityIntegrationTest {
     private AuditService auditService;
 
     @Test
-    void acessoSemTokenDeveRetornar401()
-            throws Exception {
+    void acessoSemTokenDeveRetornar401() throws Exception {
 
         mockMvc.perform(
                         get("/leads")
@@ -58,8 +62,7 @@ class SecurityIntegrationTest {
     }
 
     @Test
-    void adminComTokenValidoDeveAcessarLeads()
-            throws Exception {
+    void adminComTokenValidoDeveAcessarLeads() throws Exception {
 
         User admin = criarUsuario(
                 1L,
@@ -102,8 +105,7 @@ class SecurityIntegrationTest {
     }
 
     @Test
-    void dealerManagerComTokenValidoDeveAcessarLeads()
-            throws Exception {
+    void dealerManagerComTokenValidoDeveAcessarLeads() throws Exception {
 
         User manager = criarUsuario(
                 2L,
@@ -146,8 +148,7 @@ class SecurityIntegrationTest {
     }
 
     @Test
-    void analystNaoDeveAcessarLeads()
-            throws Exception {
+    void analystNaoDeveAcessarLeads() throws Exception {
 
         User analyst = criarUsuario(
                 3L,
@@ -191,8 +192,7 @@ class SecurityIntegrationTest {
             Long dealershipId
     ) {
 
-        User user =
-                new User();
+        User user = new User();
 
         user.setId(id);
         user.setName(nome);
