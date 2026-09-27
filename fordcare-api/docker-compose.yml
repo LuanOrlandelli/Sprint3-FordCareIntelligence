@@ -1,0 +1,150 @@
+services:
+
+  # ========================================================
+  # POSTGRESQL
+  # ========================================================
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: fordcare-postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: fordcare_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - fordcare_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d fordcare_db"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - fordcare-network
+
+
+  # ========================================================
+  # FORDCARE API
+  # ========================================================
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: fordcare-api
+
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/fordcare_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+      JWT_SECRET: ${JWT_SECRET}
+
+      SSL_KEYSTORE_PATH: file:/run/secrets/fordcare.p12
+      SSL_KEYSTORE_PASSWORD: ${SSL_KEYSTORE_PASSWORD}
+
+    ports:
+      - "8080:8080"
+
+    networks:
+      - fordcare-network
+
+    security_opt:
+      - no-new-privileges:true
+
+
+  # ========================================================
+  # PROMETHEUS
+  # ========================================================
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: fordcare-prometheus
+
+    restart: unless-stopped
+
+    depends_on:
+      - api
+
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - fordcare_prometheus_data:/prometheus
+
+    ports:
+      - "9090:9090"
+
+    networks:
+      - fordcare-network
+
+    security_opt:
+      - no-new-privileges:true
+
+
+  # ========================================================
+  # GRAFANA
+  # ========================================================
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    container_name: fordcare-grafana
+
+    restart: unless-stopped
+
+    depends_on:
+      - prometheus
+
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - fordcare_grafana_data:/var/lib/grafana
+
+    ports:
+      - "3000:3000"
+
+    networks:
+      - fordcare-network
+
+    security_opt:
+      - no-new-privileges:true
+
+
+# ==========================================================
+# VOLUMES
+# ==========================================================
+
+volumes:
+
+  fordcare_postgres_data:
+  fordcare_prometheus_data:
+  fordcare_grafana_data:
+
+
+# ==========================================================
+# NETWORK
+# ==========================================================
+
+networks:
+
+  fordcare-network:
+    driver: bridge

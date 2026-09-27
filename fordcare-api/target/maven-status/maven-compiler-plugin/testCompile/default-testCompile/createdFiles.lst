@@ -1,0 +1,4 @@
+fordcare_api\security\JwtServiceTest.class
+fordcare_api\security\SecurityIntegrationTest.class
+fordcare_api\FordcareApiApplicationTests.class
+fordcare_api\controller\LeadControllerTest.class

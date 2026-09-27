@@ -1,0 +1,81 @@
+groups:
+
+  - name: fordcare-security-alerts
+
+    rules:
+
+      # =====================================================
+      # API INDISPONÍVEL
+      # =====================================================
+
+      - alert: FordCareApiDown
+        expr: up{job="fordcare-api"} == 0
+        for: 1m
+
+        labels:
+          severity: critical
+
+        annotations:
+          summary: "FordCare API indisponível"
+          description: "O Prometheus não consegue acessar a API FordCare há pelo menos 1 minuto."
+
+
+      # =====================================================
+      # TAXA ELEVADA DE ERROS 5XX
+      # =====================================================
+
+      - alert: FordCareHighServerErrorRate
+
+        expr: >
+          sum(rate(http_server_requests_seconds_count{
+            application="fordcare-api",
+            status=~"5.."
+          }[5m]))
+          /
+          clamp_min(
+            sum(rate(http_server_requests_seconds_count{
+              application="fordcare-api"
+            }[5m])),
+            0.001
+          )
+          > 0.05
+
+        for: 2m
+
+        labels:
+          severity: warning
+
+        annotations:
+          summary: "Taxa elevada de erros 5xx"
+          description: "Mais de 5% das requisições da API estão retornando erros de servidor."
+
+
+      # =====================================================
+      # USO ELEVADO DE MEMÓRIA JVM
+      # =====================================================
+
+      - alert: FordCareHighJvmMemory
+
+        expr: >
+          sum(jvm_memory_used_bytes{
+            application="fordcare-api",
+            area="heap"
+          })
+          /
+          clamp_min(
+            sum(jvm_memory_max_bytes{
+              application="fordcare-api",
+              area="heap"
+            }),
+            1
+          )
+          > 0.85
+
+        for: 5m
+
+        labels:
+          severity: warning
+
+        annotations:
+          summary: "Uso elevado de memória JVM"
+          description: "A API FordCare está utilizando mais de 85% do heap disponível."
