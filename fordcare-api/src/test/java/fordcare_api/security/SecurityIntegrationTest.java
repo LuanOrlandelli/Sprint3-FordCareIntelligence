@@ -19,12 +19,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(
-        controllers = LeadController.class,
-        properties = {
-                "jwt.secret=fordcare-security-integration-test-secret-key-2026-123456789"
-        }
-)
+@WebMvcTest(controllers = LeadController.class)
 @Import({
         SecurityConfig.class,
         JwtService.class,
